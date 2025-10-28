@@ -542,12 +542,11 @@ elif selected == "Tentang Kami":
         Dashboard Analisis UMKM ini dikembangkan oleh tim Pengabdian kepada Masyarakat dari 
         Departemen Statistika Bisnis. Dashboard ini dirancang untuk membantu pelaku usaha dalam 
         mengelola data keuangan secara lebih sistematis, dengan menyediakan fitur perhitungan 
-        harga pokok produksi, titik impas, serta proyeksi keuangan.
-
-        Selain itu, sistem ini juga dilengkapi dengan analisis kelayakan bisnis yang ditampilkan 
+        harga pokok produksi, titik impas, serta proyeksi keuangan. Selain itu, sistem ini juga dilengkapi dengan analisis kelayakan bisnis yang ditampilkan 
         dalam bentuk visualisasi, sehingga lebih mudah dipahami oleh pelaku UMKM. 
         Dengan adanya dashboard ini, diharapkan pelaku usaha dapat mengambil keputusan yang lebih 
-        tepat dan berbasis data untuk meningkatkan daya saing serta keberlanjutan usahanya.</p>
+        tepat dan berbasis data untuk meningkatkan daya saing serta keberlanjutan usahanya.
     </div>
     """, unsafe_allow_html=True)
+
 
