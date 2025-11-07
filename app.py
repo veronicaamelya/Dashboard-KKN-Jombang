@@ -7,7 +7,7 @@ import numpy as np
 import numpy_financial as npf
 
 
-# ✅ FUNGSI CALLBACK: Digunakan untuk memaksa st.number_input memperbarui state sebelum rerun
+# Definisikan callback kosong untuk widget yang memerlukannya (walaupun di form sudah tidak perlu)
 def update_session_state_callback():
     pass
 
@@ -18,14 +18,26 @@ st.set_page_config(
 )
 
 # css
-# ✅ OPTIMASI: HANYA LOAD CSS SEKALI DI AWAL
 try:
     with open("style.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
     st.warning("File style.css tidak ditemukan. Tampilan mungkin tidak optimal.")
 
+# Inisialisasi state awal (PENTING)
+if "show_result" not in st.session_state:
+    st.session_state.show_result = False
+if "data_processed" not in st.session_state:
+    st.session_state.data_processed = False
+# ... (inisialisasi session_state lainnya, seperti diskonto, periode) ...
+
+# FUNGSI PERHITUNGAN OTOMATIS
+def hitung_total(df):
+    df["Total"] = df["Jumlah"] * df["Harga Satuan"]
+    return df
+
 #sidebar
+# ... (kode sidebar tidak diubah) ...
 with st.sidebar:
     st.markdown("<h2 class='sidebar-title'>DASHBOARD</h2>", unsafe_allow_html=True)
 
@@ -55,6 +67,7 @@ with st.sidebar:
         }
     )
 
+
     st.markdown("""
         <div class='footer'>
             <hr>
@@ -66,7 +79,6 @@ with st.sidebar:
 
 #beranda
 if selected == "Beranda":
-    # ... (kode Beranda tidak diubah)
     st.markdown("""
     <div class='header-card'>
         <div class='header-text'>
@@ -136,14 +148,6 @@ elif selected == "Analisis":
         <h2>Analisis Data Usaha</h2>
     """, unsafe_allow_html=True)
 
-# Inisialisasi state awal (untuk mencegah NameError di bagian perhitungan)
-    if "show_result" not in st.session_state:
-        st.session_state.show_result = False
-    if "diskonto" not in st.session_state:
-        st.session_state.diskonto = 10.0
-    if "periode" not in st.session_state:
-        st.session_state.periode = 12
-
 # upload excel
     st.markdown("""
     <div class="data-berkas-container">
@@ -155,8 +159,8 @@ elif selected == "Analisis":
     """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 2, 1])
-
-
+    
+    # ... (kode upload excel tidak diubah) ...
     with col1:
         st.markdown("<div class='label-col'>UNDUH TEMPLATE</div>", unsafe_allow_html=True)
         st.download_button(
@@ -175,7 +179,7 @@ elif selected == "Analisis":
         if st.button("Simpan", use_container_width=True):
             if uploaded_file:
                 df = pd.read_excel(uploaded_file)
-                st.session_state.uploaded_df = df # ✅ PERBAIKAN: Simpan DataFrame yang diunggah
+                st.session_state.uploaded_df = df
                 st.success("File berhasil disimpan dan dibaca!")
                 st.dataframe(df.head())
             else:
@@ -183,8 +187,7 @@ elif selected == "Analisis":
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# ===================== BAGIAN 1: PERENCANAAN PRODUKSI =====================
-
+# ===================== INISIALISASI STATE INPUT =====================
     default_values = {
         "bahan_diolah": 0.0,
         "target_produksi": 0.0,
@@ -193,114 +196,84 @@ elif selected == "Analisis":
         "margin_laba": 0.0,
         "total_bahan_baku": 0.0,
         "total_operasional": 0.0,
-        "total_investasi": 0.0
+        "total_investasi": 0.0,
+        "diskonto": 10.0,
+        "periode": 12
     }
     for key, val in default_values.items():
         if key not in st.session_state:
             st.session_state[key] = val
 
+
+# ====================================================================================
+# ✅ PERBAIKAN UTAMA: MENGGUNAKAN st.form UNTUK MENGISOLASI SEMUA INPUT DATA
+# ====================================================================================
+with st.form(key='data_input_form'):
+    
     st.markdown("""
     <h3 style='background-color:#FAF6E9; padding:8px; border-radius:10px; text-align:center;'>Perencanaan Produksi</h3>
     """, unsafe_allow_html=True)
 
-# Ambil nilai total biaya terbaru dari session state (dihitung di bawah)
-# ✅ PERBAIKAN: Memastikan variabel total terdefinisi sebelum digunakan
-    total_bahan_baku = st.session_state.get("total_bahan_baku", 0.0)
-    total_operasional = st.session_state.get("total_operasional", 0.0)
-
     col1, col2, col3 = st.columns(3)
     with col1:
-        # ✅ PERBAIKAN: Gunakan st.session_state.key sebagai value dan on_change
+        # PENTING: HAPUS on_change di dalam form
         bahan_diolah = st.number_input(
             "Jumlah Bahan yang Diolah (kg)",
             min_value=0.0,  
             step=0.1,
-            value=st.session_state.bahan_diolah, # Mengambil nilai dari state
-            key="bahan_diolah", 
-            on_change=update_session_state_callback
+            value=st.session_state.bahan_diolah, 
+            key="bahan_diolah" 
         )
     with col2:
-        # ✅ PERBAIKAN: Gunakan st.session_state.key sebagai value dan on_change
         target_produksi = st.number_input(
             "Target Produksi (gram)", 
             min_value=0.0, 
             step=1.0, 
             value=st.session_state.target_produksi,
-            key="target_produksi",
-            on_change=update_session_state_callback
+            key="target_produksi"
         )
     with col3:
-        # ✅ PERBAIKAN: Gunakan st.session_state.key sebagai value dan on_change
         kemasan_per_produk = st.number_input(
             "Kemasan per Produksi (gram)",
             min_value=0.0, 
             step=1.0,
             value=st.session_state.kemasan_per_produk,
-            key="kemasan_per_produk",
-            on_change=update_session_state_callback
+            key="kemasan_per_produk"
         )
 
     col4, col5 = st.columns(2)
     with col4:
-        # ✅ PERBAIKAN: Gunakan st.session_state.key sebagai value dan on_change
         jumlah_kemasan = st.number_input(
             "Jumlah Kemasan (pcs)", 
             min_value=0, 
             step=1, 
             value=st.session_state.jumlah_kemasan,
-            key="jumlah_kemasan",
-            on_change=update_session_state_callback
+            key="jumlah_kemasan"
         )
     with col5:
-        # ✅ PERBAIKAN: Gunakan st.session_state.key sebagai value dan on_change
         margin_laba = st.number_input(
             "Margin Laba (%)", 
             min_value=0.0, 
             step=0.5, 
             value=st.session_state.margin_laba,
-            key="margin_laba",
-            on_change=update_session_state_callback
+            key="margin_laba"
         )
     
-    # Perhitungan Harga Jual Awal (hanya ditampilkan)
-    if margin_laba > 0:
-        biaya_per_kemasan = (total_bahan_baku + total_operasional) / jumlah_kemasan if jumlah_kemasan > 0 else 0
-        harga_jual_otomatis = biaya_per_kemasan * (1 + margin_laba / 100)
-        st.write("💡 Masukkan data bahan baku dan operasional terlebih dahulu untuk menghitung harga jual otomatis.")
+    # KODE ST.DATA_EDITOR BAWAH TIDAK MENGGANGGU INPUT DI ATAS KARENA DALAM FORM YANG SAMA
     
-    produksi_data = {
-        "Jumlah Bahan (kg)": [bahan_diolah],
-        "Target Produksi (gram)": [target_produksi],
-        "Kemasan per Produksi (gram)": [kemasan_per_produk],
-        "Jumlah Kemasan (pcs)": [jumlah_kemasan],
-        "Margin Laba (%)": [margin_laba]
-    }
-
-# ===================== FUNGSI PERHITUNGAN OTOMATIS =====================
-    def hitung_total(df):
-        df["Total"] = df["Jumlah"] * df["Harga Satuan"]
-        return df
-
-# ===================== BAGIAN 2: BIAYA BAHAN BAKU =====================
+    # ===================== BAGIAN 2: BIAYA BAHAN BAKU =====================
     st.markdown("""
     <h3 style='background-color:#FAF6E9; padding:8px; border-radius:10px; text-align:center;'>Biaya Bahan Baku</h3>
     """, unsafe_allow_html=True)
 
     if "bahan_baku" not in st.session_state:
         st.session_state.bahan_baku = pd.DataFrame({
-            "Nama Bahan": ["", "", "", "", ""],
-            "Jumlah": [0.0]*5,
-            "Satuan": [""]*5,
-            "Harga Satuan": [0.0]*5,
+            "Nama Bahan": ["", "", "", "", ""], "Jumlah": [0.0]*5,
+            "Satuan": [""]*5, "Harga Satuan": [0.0]*5,
     })
 
-    st.session_state.bahan_baku = hitung_total(st.session_state.bahan_baku)
-
     bahan_baku_df = st.data_editor(
-        st.session_state.bahan_baku,
-        num_rows="dynamic",
-        use_container_width=True,
-        key="bahan_baku_editor",
+        st.session_state.bahan_baku, num_rows="dynamic", use_container_width=True, key="bahan_baku_editor",
         column_config={
             "Nama Bahan": st.column_config.TextColumn("Nama Bahan"),
             "Jumlah": st.column_config.NumberColumn("Jumlah", format="%.2f"),
@@ -309,32 +282,22 @@ elif selected == "Analisis":
             "Total": st.column_config.NumberColumn("Total", format="%.2f", disabled=True),
         },
     )
-
     st.session_state.bahan_baku = hitung_total(bahan_baku_df)
-    total_bahan_baku = st.session_state.bahan_baku["Total"].sum()
-    st.session_state.total_bahan_baku = total_bahan_baku # ✅ PERBAIKAN: Simpan total ke state
-    st.markdown(f"*Total Biaya Bahan Baku: Rp {total_bahan_baku:,.2f}*")
 
-# ===================== BAGIAN 3: BIAYA OPERASIONAL =====================
+
+    # ===================== BAGIAN 3: BIAYA OPERASIONAL =====================
     st.markdown("""
     <h3 style='background-color:#FAF6E9; padding:8px; border-radius:10px; text-align:center;'>Biaya Operasional</h3>
     """, unsafe_allow_html=True)
 
     if "operasional" not in st.session_state:
         st.session_state.operasional = pd.DataFrame({
-            "Nama Bahan": ["", "", ""],
-            "Jumlah": [0.0]*3,
-            "Satuan": [""]*3,
-            "Harga Satuan": [0.0]*3,
+            "Nama Bahan": ["", "", ""], "Jumlah": [0.0]*3,
+            "Satuan": [""]*3, "Harga Satuan": [0.0]*3,
     })
 
-    st.session_state.operasional = hitung_total(st.session_state.operasional)
-
     operasional_df = st.data_editor(
-        st.session_state.operasional,
-        num_rows="dynamic",
-        use_container_width=True,
-        key="operasional_editor",
+        st.session_state.operasional, num_rows="dynamic", use_container_width=True, key="operasional_editor",
         column_config={
             "Nama Bahan": st.column_config.TextColumn("Nama Bahan"),
             "Jumlah": st.column_config.NumberColumn("Jumlah", format="%.2f"),
@@ -343,32 +306,22 @@ elif selected == "Analisis":
             "Total": st.column_config.NumberColumn("Total", format="%.2f", disabled=True),
         },
     )
-
     st.session_state.operasional = hitung_total(operasional_df)
-    total_operasional = st.session_state.operasional["Total"].sum()
-    st.session_state.total_operasional = total_operasional # ✅ PERBAIKAN: Simpan total ke state
-    st.markdown(f"*Total Biaya Operasional: Rp {total_operasional:,.2f}*")
 
-# ===================== BAGIAN 4: INVESTASI AWAL =====================
+
+    # ===================== BAGIAN 4: INVESTASI AWAL =====================
     st.markdown("""
     <h3 style='background-color:#FAF6E9; padding:8px; border-radius:10px; text-align:center;'>Investasi Awal</h3>
     """, unsafe_allow_html=True)
 
     if "investasi" not in st.session_state:
         st.session_state.investasi = pd.DataFrame({
-            "Nama": ["", "", "", ""],
-            "Jumlah": [0.0]*4,
-            "Satuan": [""]*4,
-            "Harga Satuan": [0.0]*4,
+            "Nama": ["", "", "", ""], "Jumlah": [0.0]*4,
+            "Satuan": [""]*4, "Harga Satuan": [0.0]*4,
     })
 
-    st.session_state.investasi = hitung_total(st.session_state.investasi)
-
     investasi_df = st.data_editor(
-        st.session_state.investasi,
-        num_rows="dynamic",
-        use_container_width=True,
-        key="investasi_editor",
+        st.session_state.investasi, num_rows="dynamic", use_container_width=True, key="investasi_editor",
         column_config={
             "Nama": st.column_config.TextColumn("Nama"),
             "Jumlah": st.column_config.NumberColumn("Jumlah", format="%.2f"),
@@ -377,22 +330,44 @@ elif selected == "Analisis":
             "Total": st.column_config.NumberColumn("Total", format="%.2f", disabled=True),
         },
     )
-
     st.session_state.investasi = hitung_total(investasi_df)
-    total_investasi = st.session_state.investasi["Total"].sum()
-    st.session_state.total_investasi = total_investasi # ✅ PERBAIKAN: Simpan total ke state
-    st.markdown(f"*Total Investasi Awal: Rp {total_investasi:,.2f}*")
 
-# ===================== HARGA JUAL OTOMATIS =====================
     st.divider()
-    st.subheader("💰Harga Jual") 
-    
-    if jumlah_kemasan > 0:
-        biaya_per_kemasan = (total_bahan_baku + total_operasional) / jumlah_kemasan
-        harga_jual_otomatis = biaya_per_kemasan * (1 + margin_laba / 100)
-        st.markdown(f"💰 *Harga jual per kemasan (otomatis): Rp {harga_jual_otomatis:,.2f}*")
+    # ✅ TOMBOL SUBMIT FORM UNTUK MEMICU RERUN DAN MEMPROSES DATA
+    form_submitted = st.form_submit_button("Hitung Biaya Pokok & Lanjutkan", use_container_width=True)
 
-# ===================== RINGKASAN TOTAL =====================
+# ====================================================================================
+# ✅ LOGIKA PEMROSESAN SETELAH FORM DI-SUBMIT
+# ====================================================================================
+if form_submitted:
+    st.session_state.data_processed = True
+    st.session_state.show_result = False # Reset hasil analisis saat input berubah
+    
+    # Simpan semua nilai total ke session state setelah form disubmit
+    st.session_state.total_bahan_baku = st.session_state.bahan_baku["Total"].sum()
+    st.session_state.total_operasional = st.session_state.operasional["Total"].sum()
+    st.session_state.total_investasi = st.session_state.investasi["Total"].sum()
+    st.success("Data berhasil disimpan dan biaya pokok dihitung. Scroll ke bawah.")
+
+
+# ===================== RINGKASAN TOTAL (TAMPILKAN JIKA DATA SUDAH DIPROSES) =====================
+if st.session_state.data_processed:
+    
+    total_bahan_baku = st.session_state.total_bahan_baku
+    total_operasional = st.session_state.total_operasional
+    total_investasi = st.session_state.total_investasi
+    jumlah_kemasan = st.session_state.jumlah_kemasan
+    margin_laba = st.session_state.margin_laba
+    
+    # Hitung Harga Jual
+    biaya_per_kemasan = (total_bahan_baku + total_operasional) / jumlah_kemasan if jumlah_kemasan > 0 else 0
+    harga_jual_otomatis = biaya_per_kemasan * (1 + margin_laba / 100) if margin_laba > 0 else 0
+
+    st.divider()
+    st.subheader("💰Harga Jual")
+    st.markdown(f"💰 *Harga pokok produksi per kemasan: Rp {biaya_per_kemasan:,.2f}*")
+    st.markdown(f"💰 *Harga jual per kemasan (dengan margin {margin_laba}%): Rp {harga_jual_otomatis:,.2f}*")
+
     st.divider()
     st.subheader("📈 Ringkasan Total Biaya")
 
@@ -404,209 +379,215 @@ elif selected == "Analisis":
     total_semua = total_bahan_baku + total_operasional + total_investasi
     st.success(f"*Total Keseluruhan Biaya Produksi dan Investasi: Rp {total_semua:,.2f}*")
 
-# ===================== TOMBOL MULAI ANALISIS =====================
+    # ===================== TOMBOL MULAI ANALISIS =====================
     st.divider()
     st.markdown("### 🚀 Jalankan Analisis")
 
-    if st.button("Mulai Analisis", use_container_width=True):
+    if st.button("Mulai Analisis Kelayakan Usaha", use_container_width=True):
         st.session_state.show_result = True
+        st.rerun() # Rerun untuk menampilkan hasil analisis
 
 # ===================== HASIL ANALISIS (SETELAH TOMBOL DITEKAN) =====================
-    if st.session_state.get("show_result"):
-        st.markdown("""
-        <hr>
-        <div style='text-align:center; margin-top:20px;'>
-            <h2>📊 HASIL ANALISIS KEUANGAN</h2>
-            <p>Berikut hasil perhitungan dan visualisasi kelayakan usaha berdasarkan data yang telah dimasukkan.</p>
-        </div>
-        """, unsafe_allow_html=True)
+if st.session_state.get("show_result"):
+    # Gunakan nilai yang sudah tersimpan di session state
+    total_bahan_baku = st.session_state.total_bahan_baku
+    total_operasional = st.session_state.total_operasional
+    total_investasi = st.session_state.total_investasi
+    jumlah_kemasan = st.session_state.jumlah_kemasan
+    margin_laba = st.session_state.margin_laba
+    
+    # ... (Sisa kode perhitungan dan visualisasi ANALISIS tidak diubah, 
+    #       karena menggunakan variabel total yang sudah dihitung dan disimpan di atas) ...
+    # ...
+    
+    st.markdown("""
+    <hr>
+    <div style='text-align:center; margin-top:20px;'>
+        <h2>📊 HASIL ANALISIS KEUANGAN</h2>
+        <p>Berikut hasil perhitungan dan visualisasi kelayakan usaha berdasarkan data yang telah dimasukkan.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # ... (perhitungan laba_bulanan, npv, irr, dll. yang sudah benar dari kode sebelumnya) ...
+    
+    # Re-Hitung Biaya Pokok (Hanya untuk perhitungan di blok ini)
+    biaya_per_kemasan = (total_bahan_baku + total_operasional) / jumlah_kemasan if jumlah_kemasan > 0 else 0
+    harga_jual_per_kemasan = biaya_per_kemasan * (1 + margin_laba / 100)
+    total_pendapatan = jumlah_kemasan * harga_jual_per_kemasan
+    total_biaya_operasional = total_bahan_baku + total_operasional
+    laba_bersih = total_pendapatan - total_biaya_operasional
 
-        # Ambil data terbaru dari session state
-        jumlah_kemasan = st.session_state.get("jumlah_kemasan", 0)
-        margin_laba = st.session_state.get("margin_laba", 0.0)
-        total_bahan_baku = st.session_state.get("total_bahan_baku", 0.0)
-        total_operasional = st.session_state.get("total_operasional", 0.0)
-        total_investasi = st.session_state.get("total_investasi", 0.0)
-        
-        # Perhitungan Ulang
-        biaya_per_kemasan = (total_bahan_baku + total_operasional) / jumlah_kemasan if jumlah_kemasan > 0 else 0
-        harga_jual_per_kemasan = biaya_per_kemasan * (1 + margin_laba / 100)
-        total_pendapatan = jumlah_kemasan * harga_jual_per_kemasan
-        total_biaya_operasional = total_bahan_baku + total_operasional
-        laba_bersih = total_pendapatan - total_biaya_operasional
-
-        bulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun","Jul","Agus","Sep","Okt","Nov","Des"]
-        pendapatan_bulanan = [(total_pendapatan) * (1 + i*0.05) for i in range (12)]
-        biaya_bulanan = [(total_biaya_operasional) * (1 + i*0.02) for i in range(12)]
-        laba_bulanan = [p - b for p, b in zip(pendapatan_bulanan, biaya_bulanan)]
+    bulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun","Jul","Agus","Sep","Okt","Nov","Des"]
+    pendapatan_bulanan = [(total_pendapatan) * (1 + i*0.05) for i in range (12)]
+    biaya_bulanan = [(total_biaya_operasional) * (1 + i*0.02) for i in range(12)]
+    laba_bulanan = [p - b for p, b in zip(pendapatan_bulanan, biaya_bulanan)]
 
 
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Pendapatan", f"Rp {total_pendapatan:,.0f}")
-        col2.metric("Total Biaya", f"Rp {total_biaya_operasional:,.0f}")
-        col3.metric("Laba Bersih", f"Rp {laba_bersih:,.0f}")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Pendapatan", f"Rp {total_pendapatan:,.0f}")
+    col2.metric("Total Biaya", f"Rp {total_biaya_operasional:,.0f}")
+    col3.metric("Laba Bersih", f"Rp {laba_bersih:,.0f}")
 
-        # ... (Grafik 1 dan 2 tidak diubah) ...
-        fig1 = go.Figure()
-        fig1.add_trace(go.Bar(x=bulan, y=pendapatan_bulanan, name="Pendapatan", marker_color="#2ECC71"))
-        fig1.add_trace(go.Bar(x=bulan, y=biaya_bulanan, name="Biaya", marker_color="#E74C3C"))
-        fig1.update_layout(title="Pendapatan dan Biaya Bulanan", barmode="group", template="plotly_white")
-        st.plotly_chart(fig1, use_container_width=True)
+    fig1 = go.Figure()
+    fig1.add_trace(go.Bar(x=bulan, y=pendapatan_bulanan, name="Pendapatan", marker_color="#2ECC71"))
+    fig1.add_trace(go.Bar(x=bulan, y=biaya_bulanan, name="Biaya", marker_color="#E74C3C"))
+    fig1.update_layout(title="Pendapatan dan Biaya Bulanan", barmode="group", template="plotly_white")
+    st.plotly_chart(fig1, use_container_width=True)
 
-        fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(x=bulan, y=laba_bulanan, mode="lines+markers", name="Laba Bersih", line=dict(color="#3498DB", width=3)))
-        fig2.update_layout(title="Perkembangan Laba Bersih per Bulan", template="plotly_white")
-        st.plotly_chart(fig2, use_container_width=True)
-
-        diskonto = st.session_state.get("diskonto", 10.0)
-        periode = st.session_state.get("periode", 12)
-        investasi_awal_sederhana = float(total_investasi) 
-        
-        # ✅ PERBAIKAN: Perhitungan diskonto bulanan
-        diskonto_bulanan_sederhana = (1 + diskonto/100)**(1/12) - 1 
-        
-        cash_flows_sederhana = [-investasi_awal_sederhana] + laba_bulanan[:int(periode)]
-        
-        npv_sederhana = npf.npv(diskonto_bulanan_sederhana, cash_flows_sederhana)
-        
-        pv_cash_inflows_sederhana = npv_sederhana + investasi_awal_sederhana
-        pi_sederhana = pv_cash_inflows_sederhana / investasi_awal_sederhana if investasi_awal_sederhana > 0 else 0
-        
-        irr_sederhana = npf.irr(cash_flows_sederhana)
-        irr_percent_sederhana = irr_sederhana * 100 if irr_sederhana is not None else 0
-        
-        # ✅ PERBAIKAN: Hitung Payback Period di sini (menggunakan logika yang benar dari bawah)
-        cumulative_cashflow_sederhana = np.cumsum(cash_flows_sederhana)
-        try:
-            payback_index = np.where(cumulative_cashflow_sederhana >= 0)[0][0]
-            if payback_index == 0:
-                payback_period_sederhana = 0.0
-            else: 
-                bulan_sebelum = payback_index - 1 
-                cf_kum_sebelum = cumulative_cashflow_sederhana[bulan_sebelum]
-                cf_bulan_balik = cash_flows_sederhana[payback_index]
-                payback_period_sederhana = bulan_sebelum + abs(cf_kum_sebelum) / cf_bulan_balik
-        except IndexError:
+    fig2 = go.Figure()
+    fig2.add_trace(go.Scatter(x=bulan, y=laba_bulanan, mode="lines+markers", name="Laba Bersih", line=dict(color="#3498DB", width=3)))
+    fig2.update_layout(title="Perkembangan Laba Bersih per Bulan", template="plotly_white")
+    st.plotly_chart(fig2, use_container_width=True)
+    
+    # ... (Sisa perhitungan finansial lanjutan: NPV, IRR, Payback, BEP) ...
+    diskonto = st.session_state.get("diskonto", 10.0)
+    periode = st.session_state.get("periode", 12)
+    investasi_awal_sederhana = float(total_investasi) 
+    
+    diskonto_bulanan_sederhana = (1 + diskonto/100)**(1/12) - 1 
+    cash_flows_sederhana = [-investasi_awal_sederhana] + laba_bulanan[:int(periode)]
+    npv_sederhana = npf.npv(diskonto_bulanan_sederhana, cash_flows_sederhana)
+    pv_cash_inflows_sederhana = npv_sederhana + investasi_awal_sederhana
+    pi_sederhana = pv_cash_inflows_sederhana / investasi_awal_sederhana if investasi_awal_sederhana > 0 else 0
+    irr_sederhana = npf.irr(cash_flows_sederhana)
+    irr_percent_sederhana = irr_sederhana * 100 if irr_sederhana is not None else 0
+    
+    cumulative_cashflow_sederhana = np.cumsum(cash_flows_sederhana)
+    try:
+        payback_index = np.where(cumulative_cashflow_sederhana >= 0)[0][0]
+        if payback_index == 0:
             payback_period_sederhana = 0.0
-        
-        # ... (Sisa kode Analisis Sederhana) ...
-        st.markdown("### 💡 Evaluasi Kelayakan Usaha")
-        col4, col5, col6, col7 = st.columns(4)
-        col4.metric("NPV", f"Rp {npv_sederhana:,.2f}") 
-        col5.metric("Profitability Index", f"{pi_sederhana:.2f}")
-        col6.metric("Payback Period", f"{payback_period_sederhana:.2f} bulan")
-        col7.metric("Internal Rate of Return", f"{irr_percent_sederhana:.2f}%")
+        else: 
+            bulan_sebelum = payback_index - 1 
+            cf_kum_sebelum = cumulative_cashflow_sederhana[bulan_sebelum]
+            cf_bulan_balik = cash_flows_sederhana[payback_index]
+            payback_period_sederhana = bulan_sebelum + abs(cf_kum_sebelum) / cf_bulan_balik
+    except IndexError:
+        payback_period_sederhana = 0.0
+    
+    
+    st.markdown("### 💡 Evaluasi Kelayakan Usaha")
+    col4, col5, col6, col7 = st.columns(4)
+    col4.metric("NPV", f"Rp {npv_sederhana:,.2f}") 
+    col5.metric("Profitability Index", f"{pi_sederhana:.2f}")
+    col6.metric("Payback Period", f"{payback_period_sederhana:.2f} bulan")
+    col7.metric("Internal Rate of Return", f"{irr_percent_sederhana:.2f}%")
 
-        if pi_sederhana > 1 and npv_sederhana > 0:
-            st.success("✅ BISNIS SANGAT LAYAK DIJALANKAN")
-        else:
-            st.warning("⚠ BISNIS PERLU DIEVALUASI KEMBALI")
+    if pi_sederhana > 1 and npv_sederhana > 0:
+        st.success("✅ BISNIS SANGAT LAYAK DIJALANKAN")
+    else:
+        st.warning("⚠ BISNIS PERLU DIEVALUASI KEMBALI")
 
-        st.markdown("<br><hr>", unsafe_allow_html=True)
+    st.markdown("<br><hr>", unsafe_allow_html=True)
 
-        # ===================== ANALISIS KEUANGAN LANJUTAN =====================
-        st.markdown("""
-        <hr>
-        <div style='text-align:center; margin-top:20px;'>
-            <h2>💹 ANALISIS KEUANGAN LANJUTAN</h2>
-            <p>Analisis tambahan untuk melihat kelayakan finansial usaha Anda secara lebih mendalam.</p>
-        </div>
-        """, unsafe_allow_html=True)
+    # ... (Analisis Keuangan Lanjutan - tidak diubah, kecuali key untuk number_input) ...
+    st.markdown("""
+    <hr>
+    <div style='text-align:center; margin-top:20px;'>
+        <h2>💹 ANALISIS KEUANGAN LANJUTAN</h2>
+        <p>Analisis tambahan untuk melihat kelayakan finansial usaha Anda secara lebih mendalam.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-        # Asumsi dasar (bisa diubah user)
-        # ✅ PERBAIKAN: Gunakan st.session_state.key sebagai value dan on_change
-        diskonto = st.number_input(
-            "📉 Tingkat Diskonto (%)", 
-            min_value=1.0, 
-            value=st.session_state.get("diskonto", 10.0), # Mengambil dari state
-            step=0.5,
-            key="diskonto",
-            on_change=update_session_state_callback
-        )
-        periode = st.number_input(
-            "⏳ Periode Proyeksi (bulan)", 
-            min_value=1, 
-            value=st.session_state.get("periode", 12), # Mengambil dari state
-            step=1,
-            key="periode",
-            on_change=update_session_state_callback
-        )
-        investasi_awal = st.number_input(
-            "💸 Total Investasi Awal (Rp)", 
-            min_value=0.0, 
-            value=float(total_investasi), 
-            step=100000.0,
-            key="investasi_awal",
-            on_change=update_session_state_callback
-        )
-        
-        # ... (Sisa kode Analisis Keuangan Lanjutan tidak diubah) ...
-        
-        # Arus kas dari laba bulanan
-        ncf = laba_bulanan[:int(periode)]
-        cash_flows = [-investasi_awal] + ncf
+    # Asumsi dasar (bisa diubah user)
+    diskonto = st.number_input(
+        "📉 Tingkat Diskonto (%)", 
+        min_value=1.0, 
+        value=st.session_state.get("diskonto", 10.0), # Mengambil dari state
+        step=0.5,
+        key="diskonto",
+        on_change=update_session_state_callback
+    )
+    periode = st.number_input(
+        "⏳ Periode Proyeksi (bulan)", 
+        min_value=1, 
+        value=st.session_state.get("periode", 12), # Mengambil dari state
+        step=1,
+        key="periode",
+        on_change=update_session_state_callback
+    )
+    investasi_awal = st.number_input(
+        "💸 Total Investasi Awal (Rp)", 
+        min_value=0.0, 
+        value=float(total_investasi), 
+        step=100000.0,
+        key="investasi_awal",
+        on_change=update_session_state_callback
+    )
+    
+    ncf = laba_bulanan[:int(periode)]
+    cash_flows = [-investasi_awal] + ncf
+    diskonto_bulanan = (1 + diskonto/100)**(1/12) - 1
+    npv = npf.npv(diskonto_bulanan, cash_flows)
+    irr = npf.irr(cash_flows)
+    irr_percent = irr * 100 if irr is not None else 0
+    pv_cash_inflows = npv + investasi_awal
+    pi = pv_cash_inflows / investasi_awal if investasi_awal > 0 else 0  
 
-        # Perhitungan finansial
-        diskonto_bulanan = (1 + diskonto/100)**(1/12) - 1
-        npv = npf.npv(diskonto_bulanan, cash_flows)
-        irr = npf.irr(cash_flows)
-        irr_percent = irr * 100 if irr is not None else 0
-        pv_cash_inflows = npv + investasi_awal
-        pi = pv_cash_inflows / investasi_awal if investasi_awal > 0 else 0 
+    cumulative_cashflow = np.cumsum(cash_flows)
+    # ... (perhitungan payback_period lanjutan) ...
+    try:
+        payback_index = np.where(cumulative_cashflow >= 0)[0][0]
+        if payback_index == 0:
+            payback_period = 0.0
+        else: 
+            bulan_sebelum = payback_index - 1 
+            cf_kum_sebelum = cumulative_cashflow [bulan_sebelum]
+            cf_bulan_balik = cash_flows[payback_index]
+            payback_period = bulan_sebelum + abs(cf_kum_sebelum) / cf_bulan_balik
+    except IndexError:
+        payback_period = None
 
-        cumulative_cashflow = np.cumsum(cash_flows)
-        try:
-            payback_index = np.where(cumulative_cashflow >= 0)[0][0]
+    biaya_tetap = total_operasional
+    biaya_variabel_per_unit = total_bahan_baku / jumlah_kemasan if jumlah_kemasan > 0 else 0
+    harga_jual_unit = harga_jual_per_kemasan
+    bep_unit = biaya_tetap / (harga_jual_unit - biaya_variabel_per_unit) if (harga_jual_unit - biaya_variabel_per_unit) > 0 else 0
+    bep_rupiah = bep_unit * harga_jual_unit
 
-            if payback_index == 0:
-                payback_period = 0.0
-
-            else: 
-                bulan_sebelum = payback_index - 1 
-                cf_kum_sebelum = cumulative_cashflow [bulan_sebelum]
-                cf_bulan_balik = cash_flows[payback_index]
-            
-                payback_period = bulan_sebelum + abs(cf_kum_sebelum) / cf_bulan_balik
-        except IndexError:
-            payback_period = None
-
-        biaya_tetap = total_operasional
-        biaya_variabel_per_unit = total_bahan_baku / jumlah_kemasan if jumlah_kemasan > 0 else 0
-        harga_jual_unit = harga_jual_per_kemasan
-        bep_unit = biaya_tetap / (harga_jual_unit - biaya_variabel_per_unit) if (harga_jual_unit - biaya_variabel_per_unit) > 0 else 0
-        bep_rupiah = bep_unit * harga_jual_unit
-
-        # Tampilkan hasil
-        st.subheader("📊 Hasil Analisis Finansial Lanjutan")
-        colA, colB, colC, colD, colE = st.columns(5)
-        colA.metric("NPV (Net Present Value)", f"Rp {npv:,.0f}")
-        colB.metric("IRR (Internal Rate of Return)", f"{irr_percent:.2f}%")
-        colC.metric("Profitability Index (PI)", f"{pi:.2f}")
-        colD.metric("Payback Period", f"{payback_period if payback_period else 'Belum balik modal':.2f} Bulan")        
-        colE.metric("Break Even Point (Rp)", f"Rp {bep_rupiah:,.0f}")
-        
-        # ... (Grafik 3 tidak diubah) ...
-        # ... (Interpretasi otomatis tidak diubah) ...
-        
-        # Simpan ke session_state agar ikut diekspor ke Excel
-        hasil_analisis = {
-            "NPV": [npv],
-            "IRR (%)": [irr_percent],
-            "Payback Period (bulan)": [payback_period],
-            "BEP (unit)": [bep_unit],
-            "BEP (Rp)": [bep_rupiah]
-        }
-        st.session_state.analisis_keuangan = pd.DataFrame(hasil_analisis)
+    st.subheader("📊 Hasil Analisis Finansial Lanjutan")
+    colA, colB, colC, colD, colE = st.columns(5)
+    colA.metric("NPV (Net Present Value)", f"Rp {npv:,.0f}")
+    colB.metric("IRR (Internal Rate of Return)", f"{irr_percent:.2f}%")
+    colC.metric("Profitability Index (PI)", f"{pi:.2f}")
+    colD.metric("Payback Period", f"{payback_period if payback_period else 'Belum balik modal':.2f} Bulan")        
+    colE.metric("Break Even Point (Rp)", f"Rp {bep_rupiah:,.0f}")
+    
+    # ... (Sisa kode interpretasi, dll.) ...
+    
+    st.markdown("### 🧭 Interpretasi Hasil")
+    if npv > 0 and irr_percent > (diskonto * 0.8) and payback_period and payback_period <= periode * 1.2:
+        st.success("✅ Proyek *LAYAK* dijalankan karena NPV > 0, IRR > tingkat diskonto, dan Payback cepat tercapai.")
+    elif npv > 0 or irr_percent > (diskonto * 0.8):
+        st.info("⚖ Proyek *cukup layak*, namun IRR atau Payback belum optimal.")
+    else:
+        st.warning("❌ Proyek *tidak layak* dijalankan. Perlu evaluasi ulang biaya atau pendapatan.")
+    
+    # Simpan ke session_state agar ikut diekspor ke Excel
+    hasil_analisis = {
+        "NPV": [npv],
+        "IRR (%)": [irr_percent],
+        "Payback Period (bulan)": [payback_period],
+        "BEP (unit)": [bep_unit],
+        "BEP (Rp)": [bep_rupiah]
+    }
+    st.session_state.analisis_keuangan = pd.DataFrame(hasil_analisis)
 
 # ===================== FITUR EKSPOR KE EXCEL =====================
     st.divider()
     st.markdown("### 📤 Ekspor Data ke Excel")
 
-    # ... (fungsi export_to_excel tidak diubah) ...
     def export_to_excel():
         output = BytesIO()
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            pd.DataFrame(produksi_data).to_excel(writer, sheet_name="Perencanaan Produksi", index=False)
+            pd.DataFrame(
+                {
+                    "Jumlah Bahan (kg)": [st.session_state.bahan_diolah],
+                    "Target Produksi (gram)": [st.session_state.target_produksi],
+                    "Kemasan per Produksi (gram)": [st.session_state.kemasan_per_produk],
+                    "Jumlah Kemasan (pcs)": [st.session_state.jumlah_kemasan],
+                    "Margin Laba (%)": [st.session_state.margin_laba]
+                }
+            ).to_excel(writer, sheet_name="Perencanaan Produksi", index=False)
             st.session_state.bahan_baku.to_excel(writer, sheet_name="Biaya Bahan Baku", index=False)
             st.session_state.operasional.to_excel(writer, sheet_name="Biaya Operasional", index=False)
             st.session_state.investasi.to_excel(writer, sheet_name="Investasi Awal", index=False)
@@ -644,12 +625,7 @@ elif selected == "Tentang Kami":
     <div class='content-page-1'>
         <p>Dashboard ini dikembangkan oleh <b>KKN Abmas Desa Gongseng</b> 
         dari <b>Departemen Statistika Bisnis, Institut Teknologi Sepuluh Nopember (ITS)</b>.
-        Dashboard Analisis UMKM ini dikembangkan oleh tim Pengabdian kepada Masyarakat dari 
-        Departemen Statistika Bisnis. Dashboard ini dirancang untuk membantu pelaku usaha dalam 
-        mengelola data keuangan secara lebih sistematis, dengan menyediakan fitur perhitungan 
-        harga pokok produksi, titik impas, serta proyeksi keuangan. Selain itu, sistem ini juga dilengkapi dengan analisis kelayakan bisnis yang ditampilkan 
-        dalam bentuk visualisasi, sehingga lebih mudah dipahami oleh pelaku UMKM. 
-        Dengan adanya dashboard ini, diharapkan pelaku usaha dapat mengambil keputusan yang lebih 
-        tepat dan berbasis data untuk meningkatkan daya saing serta keberlanjutan usahanya.
+        Dashboard Analisis UMKM ini dirancang untuk membantu pelaku usaha dalam 
+        mengelola data keuangan secara lebih sistematis.
     </div>
     """, unsafe_allow_html=True)
