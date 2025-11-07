@@ -269,7 +269,7 @@ elif selected == "Analisis":
 
     st.session_state.bahan_baku = hitung_total(bahan_baku_df)
     total_bahan_baku = st.session_state.bahan_baku["Total"].sum()
-    st.markdown(f"*Total Biaya Bahan Baku: Rp {total_bahan_baku:,.2f}*")
+    st.markdown(f"Total Biaya Bahan Baku: Rp {total_bahan_baku:,.2f}")
 
 # ===================== BAGIAN 3: BIAYA OPERASIONAL =====================
     st.markdown("""
@@ -302,7 +302,7 @@ elif selected == "Analisis":
 
     st.session_state.operasional = hitung_total(operasional_df)
     total_operasional = st.session_state.operasional["Total"].sum()
-    st.markdown(f"*Total Biaya Operasional: Rp {total_operasional:,.2f}*")
+    st.markdown(f"Total Biaya Operasional: Rp {total_operasional:,.2f}")
 
 # ===================== BAGIAN 4: INVESTASI AWAL =====================
     st.markdown("""
@@ -335,7 +335,7 @@ elif selected == "Analisis":
 
     st.session_state.investasi = hitung_total(investasi_df)
     total_investasi = st.session_state.investasi["Total"].sum()
-    st.markdown(f"*Total Investasi Awal: Rp {total_investasi:,.2f}*")
+    st.markdown(f"Total Investasi Awal: Rp {total_investasi:,.2f}")
 
 # ===================== HARGA JUAL OTOMATIS =====================
     st.divider()
@@ -344,7 +344,7 @@ elif selected == "Analisis":
     if jumlah_kemasan > 0:
         biaya_per_kemasan = (total_bahan_baku + total_operasional) / jumlah_kemasan
         harga_jual_otomatis = biaya_per_kemasan * (1 + margin_laba / 100)
-        st.markdown(f"💰 *Harga jual per kemasan (otomatis): Rp {harga_jual_otomatis:,.2f}*")
+        st.markdown(f"💰 Harga jual per kemasan (otomatis): Rp {harga_jual_otomatis:,.2f}")
 
 # ===================== RINGKASAN TOTAL =====================
     st.divider()
@@ -356,7 +356,7 @@ elif selected == "Analisis":
     colC.metric("Total Investasi Awal", f"Rp {total_investasi:,.2f}")
 
     total_semua = total_bahan_baku + total_operasional + total_investasi
-    st.success(f"*Total Keseluruhan Biaya Produksi dan Investasi: Rp {total_semua:,.2f}*")
+    st.success(f"Total Keseluruhan Biaya Produksi dan Investasi: Rp {total_semua:,.2f}")
 # ===================== TOMBOL MULAI ANALISIS =====================
     st.divider()
     st.markdown("### 🚀 Jalankan Analisis")
@@ -400,8 +400,8 @@ elif selected == "Analisis":
         laba_bersih = total_pendapatan - total_biaya_operasional
 
         bulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun","Jul","Agus","Sep","Okt","Nov","Des"]
-        pendapatan_bulanan = [(total_pendapatan) * (1 + i*0.05) for i in range (12)]
-        biaya_bulanan = [(total_biaya_operasional) * (1 + i*0.02) for i in range(12)]
+        pendapatan_bulanan = [(total_pendapatan) * ((1 + 0.05)**i) for i in range (12)]
+        biaya_bulanan = [(total_biaya_operasional) * ((1 + 0.05)**i) for i in range(12)]
         laba_bulanan = [p - b for p, b in zip(pendapatan_bulanan, biaya_bulanan)]
 
 
@@ -413,7 +413,7 @@ elif selected == "Analisis":
         fig1 = go.Figure()
         fig1.add_trace(go.Bar(x=bulan, y=pendapatan_bulanan, name="Pendapatan", marker_color="#2ECC71"))
         fig1.add_trace(go.Bar(x=bulan, y=biaya_bulanan, name="Biaya", marker_color="#E74C3C"))
-        fig1.update_layout(title="Pendapatan dan Biaya Bulanan", barmode="group", template="plotly_white")
+        fig1.update_layout(title="Pendapatan dan Biaya Bulanan (Asumsi Kenaikan 5% per Bulan)", barmode="group", template="plotly_white")
         st.plotly_chart(fig1, use_container_width=True)
 
         fig2 = go.Figure()
@@ -421,7 +421,7 @@ elif selected == "Analisis":
         fig2.update_layout(title="Perkembangan Laba Bersih per Bulan", template="plotly_white")
         st.plotly_chart(fig2, use_container_width=True)
 
-        diskonto = st.session_state.get("diskonto", 10.0)
+        diskonto = st.session_state.get("diskonto", 4.75)
         periode = st.session_state.get("periode", 12)
         investasi_awal_sederhana = float(total_investasi) # Menggunakan total_investasi dari input user
         
@@ -467,7 +467,7 @@ elif selected == "Analisis":
         """, unsafe_allow_html=True)
 
         # Asumsi dasar (bisa diubah user)
-        diskonto = st.number_input("📉 Tingkat Diskonto (%)", min_value=1.0, value=10.0, step=0.5)
+        diskonto = st.number_input("📉 Tingkat Diskonto (%)", min_value=1.0, value=4.75, step=0.5)
         periode = st.number_input("⏳ Periode Proyeksi (bulan)", min_value=1, value=12, step=1)
         investasi_awal = st.number_input("💸 Total Investasi Awal (Rp)", min_value=0.0, value=float(total_investasi), step=100000.0)
 
@@ -479,7 +479,8 @@ elif selected == "Analisis":
         diskonto_bulanan = (1 + diskonto/100)(1/12) - 1
         npv = npf.npv(diskonto_bulanan, cash_flows)
         irr = npf.irr(cash_flows)
-        irr_percent = irr * 100 if irr is not None else 0
+        irr_tahunan = (1 + irr)**12-1 if irr is not None else 0
+        irr_percent = irr * 100 
         pv_cash_inflows = npv + investasi_awal
         pi = pv_cash_inflows / investasi_awal if investasi_awal > 0 else 0 
 
@@ -524,12 +525,12 @@ elif selected == "Analisis":
 
         # Interpretasi otomatis
         st.markdown("### 🧭 Interpretasi Hasil")
-        if npv > 0 and irr_percent > (diskonto * 0.8) and payback_period and payback_period <= periode * 1.2:
-            st.success("✅ Proyek *LAYAK* dijalankan karena NPV > 0, IRR > tingkat diskonto, dan Payback cepat tercapai.")
-        elif npv > 0 or irr_percent > (diskonto * 0.8):
-            st.info("⚖ Proyek *cukup layak*, namun IRR atau Payback belum optimal.")
+        if npv > 0 and irr_percent > diskonto and payback_period and payback_period <= periode * 1.2:
+            st.success("✅ Proyek LAYAK dijalankan karena NPV > 0, IRR > tingkat diskonto, dan Payback cepat tercapai.")
+        elif npv > 0 or irr_percent > diskonto:
+            st.info("⚖ Proyek cukup layak, namun IRR atau Payback belum optimal.")
         else:
-            st.warning("❌ Proyek *tidak layak* dijalankan. Perlu evaluasi ulang biaya atau pendapatan.")
+            st.warning("❌ Proyek tidak layak dijalankan. Perlu evaluasi ulang biaya atau pendapatan.")
 
         # Simpan ke session_state agar ikut diekspor ke Excel
         hasil_analisis = {
