@@ -7,6 +7,10 @@ import numpy as np
 import numpy_financial as npf
 
 
+def update_session_state_callback():
+    pass
+
+
 st.set_page_config(
     page_title="Dashboard Analisis Usaha UMKM",
     page_icon="📊",
@@ -612,6 +616,7 @@ elif selected == "Tentang Kami":
         tepat dan berbasis data untuk meningkatkan daya saing serta keberlanjutan usahanya.
     </div>
     """, unsafe_allow_html=True)
+
 
 
 
