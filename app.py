@@ -210,8 +210,6 @@ elif selected == "Analisis":
     if margin_laba > 0:
         biaya_per_kemasan = (total_bahan_baku + total_operasional) / jumlah_kemasan if jumlah_kemasan > 0 else 0
         harga_jual_otomatis = biaya_per_kemasan * (1 + margin_laba / 100)
-        st.write(f"💰 Harga jual per kemasan (otomatis): Rp {harga_jual_otomatis:,.2f}")
-    else:
         st.write("💡 Masukkan data bahan baku dan operasional terlebih dahulu untuk menghitung harga jual otomatis.")
     
     produksi_data = {
@@ -258,7 +256,7 @@ elif selected == "Analisis":
 
     st.session_state.bahan_baku = hitung_total(bahan_baku_df)
     total_bahan_baku = st.session_state.bahan_baku["Total"].sum()
-    st.markdown(f"**Total Biaya Bahan Baku: Rp {total_bahan_baku:,.2f}**")
+    st.markdown(f"*Total Biaya Bahan Baku: Rp {total_bahan_baku:,.2f}*")
 
 # ===================== BAGIAN 3: BIAYA OPERASIONAL =====================
     st.markdown("""
@@ -291,7 +289,7 @@ elif selected == "Analisis":
 
     st.session_state.operasional = hitung_total(operasional_df)
     total_operasional = st.session_state.operasional["Total"].sum()
-    st.markdown(f"**Total Biaya Operasional: Rp {total_operasional:,.2f}**")
+    st.markdown(f"*Total Biaya Operasional: Rp {total_operasional:,.2f}*")
 
 # ===================== BAGIAN 4: INVESTASI AWAL =====================
     st.markdown("""
@@ -324,7 +322,16 @@ elif selected == "Analisis":
 
     st.session_state.investasi = hitung_total(investasi_df)
     total_investasi = st.session_state.investasi["Total"].sum()
-    st.markdown(f"**Total Investasi Awal: Rp {total_investasi:,.2f}**")
+    st.markdown(f"*Total Investasi Awal: Rp {total_investasi:,.2f}*")
+
+# ===================== HARGA JUAL OTOMATIS =====================
+    st.divider()
+    st.subheader("💰Harga Jual") 
+ 
+    if jumlah_kemasan > 0:
+        biaya_per_kemasan = (total_bahan_baku + total_operasional) / jumlah_kemasan
+        harga_jual_otomatis = biaya_per_kemasan * (1 + margin_laba / 100)
+        st.markdown(f"💰 *Harga jual per kemasan (otomatis): Rp {harga_jual_otomatis:,.2f}*")
 
 # ===================== RINGKASAN TOTAL =====================
     st.divider()
@@ -336,7 +343,7 @@ elif selected == "Analisis":
     colC.metric("Total Investasi Awal", f"Rp {total_investasi:,.2f}")
 
     total_semua = total_bahan_baku + total_operasional + total_investasi
-    st.success(f"**Total Keseluruhan Biaya Produksi dan Investasi: Rp {total_semua:,.2f}**")
+    st.success(f"*Total Keseluruhan Biaya Produksi dan Investasi: Rp {total_semua:,.2f}*")
 # ===================== TOMBOL MULAI ANALISIS =====================
     st.divider()
     st.markdown("### 🚀 Jalankan Analisis")
@@ -376,17 +383,18 @@ elif selected == "Analisis":
         biaya_per_kemasan = (total_bahan_baku + total_operasional) / jumlah_kemasan if jumlah_kemasan > 0 else 0
         harga_jual_per_kemasan = biaya_per_kemasan * (1 + margin_laba / 100)
         total_pendapatan = jumlah_kemasan * harga_jual_per_kemasan
-        total_biaya = total_bahan_baku + total_operasional + total_investasi
-        laba_bersih = total_pendapatan - total_biaya
+        total_biaya_operasional = total_bahan_baku + total_operasional
+        laba_bersih = total_pendapatan - total_biaya_operasional
 
         bulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun","Jul","Agus","Sep","Okt","Nov","Des"]
-        pendapatan_bulanan = [total_pendapatan * (1 + i*0.05) for i in range(12)]
-        biaya_bulanan = [total_biaya * (1 + i*0.02) for i in range(12)]
+        pendapatan_bulanan = [(total_pendapatan) * (1 + i*0.05) for i in range (12)]
+        biaya_bulanan = [(total_biaya_operasional) * (1 + i*0.02) for i in range(12)]
         laba_bulanan = [p - b for p, b in zip(pendapatan_bulanan, biaya_bulanan)]
+
 
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Pendapatan", f"Rp {total_pendapatan:,.0f}")
-        col2.metric("Total Biaya", f"Rp {total_biaya:,.0f}")
+        col2.metric("Total Biaya", f"Rp {total_biaya_operasional:,.0f}")
         col3.metric("Laba Bersih", f"Rp {laba_bersih:,.0f}")
 
         fig1 = go.Figure()
@@ -400,22 +408,39 @@ elif selected == "Analisis":
         fig2.update_layout(title="Perkembangan Laba Bersih per Bulan", template="plotly_white")
         st.plotly_chart(fig2, use_container_width=True)
 
-        npv = laba_bersih * 0.9
-        pi = (total_pendapatan / total_biaya) if total_biaya > 0 else 0
-        irr = 0.72
-        payback = 4.37
+        diskonto = st.session_state.get("diskonto", 10.0)
+        periode = st.session_state.get("periode", 12)
+        investasi_awal_sederhana = float(total_investasi) # Menggunakan total_investasi dari input user
+        
+        payback_period = None
+
+        diskonto_bulanan_sederhana = (1 + diskonto/100)(1/12) - 1
+        
+        cash_flows_sederhana = [-investasi_awal_sederhana] + laba_bulanan[:int(periode)]
+        
+        npv_sederhana = npf.npv(diskonto_bulanan_sederhana, cash_flows_sederhana)
+        
+        pv_cash_inflows_sederhana = npv_sederhana + investasi_awal_sederhana
+        pi_sederhana = pv_cash_inflows_sederhana / investasi_awal_sederhana if investasi_awal_sederhana > 0 else 0
+        
+        irr_sederhana = npf.irr(cash_flows_sederhana)
+        irr_percent_sederhana = irr_sederhana * 100 if irr_sederhana is not None else 0
+        
+        payback_period_sederhana = payback_period if 'payback_period' in locals() and payback_period is not None else 0 # Mengasumsikan payback_period sudah terhitung di blok berikutnya
+        if isinstance(payback_period_sederhana, str):
+            payback_period_sederhana = 0.0
 
         st.markdown("### 💡 Evaluasi Kelayakan Usaha")
         col4, col5, col6, col7 = st.columns(4)
-        col4.metric("NPV", f"Rp {npv:,.2f}")
-        col5.metric("Profitability Index", f"{pi:.2f}")
-        col6.metric("Payback Period", f"{payback:.2f} bulan")
-        col7.metric("Average Rate of Return", f"{irr*100:.2f}%")
+        col4.metric("NPV", f"Rp {npv_sederhana:,.2f}") # Menggunakan NPV yang benar
+        col5.metric("Profitability Index", f"{pi_sederhana:.2f}") # Menggunakan PI yang benar
+        col6.metric("Payback Period", f"{payback_period_sederhana:.2f} bulan") # Menggunakan Payback yang benar
+        col7.metric("Internal Rate of Return", f"{irr_percent_sederhana:.2f}%") # Menggunakan IRR yang benar
 
-        if pi > 1 and laba_bersih > 0:
-            st.success("✅ **BISNIS SANGAT LAYAK DIJALANKAN**")
+        if pi_sederhana > 1 and npv_sederhana > 0: # Interpretasi berdasarkan PI dan NPV yang benar
+            st.success("✅ BISNIS SANGAT LAYAK DIJALANKAN")
         else:
-            st.warning("⚠️ **BISNIS PERLU DIEVALUASI KEMBALI**")
+            st.warning("⚠ BISNIS PERLU DIEVALUASI KEMBALI")
 
         st.markdown("<br><hr>", unsafe_allow_html=True)
 
@@ -438,14 +463,26 @@ elif selected == "Analisis":
         cash_flows = [-investasi_awal] + ncf
 
         # Perhitungan finansial
-        npv = sum([cf / ((1 + diskonto/100) ** i) for i, cf in enumerate(cash_flows)])
+        diskonto_bulanan = (1 + diskonto/100)(1/12) - 1
+        npv = npf.npv(diskonto_bulanan, cash_flows)
         irr = npf.irr(cash_flows)
         irr_percent = irr * 100 if irr is not None else 0
+        pv_cash_inflows = npv + investasi_awal
+        pi = pv_cash_inflows / investasi_awal if investasi_awal > 0 else 0 
 
         cumulative_cashflow = np.cumsum(cash_flows)
         try:
             payback_index = np.where(cumulative_cashflow >= 0)[0][0]
-            payback_period = payback_index + 1
+
+            if payback_index == 0:
+                payback_period = 0
+
+            else: 
+                bulan_sebelum = payback_index - 1 
+                cf_kum_sebelum = cumulative_cashflow [bulan_sebelum]
+                cf_bulan_balik = cash_flows[payback_index]
+        
+                payback_period = bulan_sebelum + abs(cf_kum_sebelum) / cf_bulan_balik
         except IndexError:
             payback_period = None
 
@@ -457,12 +494,12 @@ elif selected == "Analisis":
 
         # Tampilkan hasil
         st.subheader("📊 Hasil Analisis Finansial Lanjutan")
-        colA, colB, colC, colD = st.columns(4)
+        colA, colB, colC, colD, colE = st.columns(5)
         colA.metric("NPV (Net Present Value)", f"Rp {npv:,.0f}")
         colB.metric("IRR (Internal Rate of Return)", f"{irr_percent:.2f}%")
-        colC.metric("Payback Period", f"{payback_period if payback_period else 'Belum balik modal'} Bulan")
-        colD.metric("Break Even Point", f"{bep_unit:,.0f} Unit / Rp {bep_rupiah:,.0f}")
-
+        colC.metric("Profitability Index (PI)", f"{pi:.2f}")
+        colD.metric("Payback Period", f"{payback_period if payback_period else 'Belum balik modal':.2f} Bulan")        
+        colE.metric("Break Even Point (Rp)", f"Rp {bep_rupiah:,.0f}")
         # Grafik Arus Kas
         import plotly.graph_objects as go
         st.markdown("#### Grafik Arus Kas dan Kumulatif")
@@ -474,12 +511,12 @@ elif selected == "Analisis":
 
         # Interpretasi otomatis
         st.markdown("### 🧭 Interpretasi Hasil")
-        if npv > 0 and irr_percent > diskonto and payback_period and payback_period < periode:
-            st.success("✅ Proyek **LAYAK** dijalankan karena NPV > 0, IRR > tingkat diskonto, dan Payback cepat tercapai.")
-        elif npv > 0:
-            st.info("⚖️ Proyek **cukup layak**, namun IRR atau Payback belum optimal.")
+        if npv > 0 and irr_percent > (diskonto * 0.8) and payback_period and payback_period <= periode * 1.2:
+            st.success("✅ Proyek *LAYAK* dijalankan karena NPV > 0, IRR > tingkat diskonto, dan Payback cepat tercapai.")
+        elif npv > 0 or irr_percent > (diskonto * 0.8):
+            st.info("⚖ Proyek *cukup layak*, namun IRR atau Payback belum optimal.")
         else:
-            st.warning("❌ Proyek **tidak layak** dijalankan. Perlu evaluasi ulang biaya atau pendapatan.")
+            st.warning("❌ Proyek *tidak layak* dijalankan. Perlu evaluasi ulang biaya atau pendapatan.")
 
         # Simpan ke session_state agar ikut diekspor ke Excel
         hasil_analisis = {
@@ -548,5 +585,3 @@ elif selected == "Tentang Kami":
         tepat dan berbasis data untuk meningkatkan daya saing serta keberlanjutan usahanya.
     </div>
     """, unsafe_allow_html=True)
-
-
