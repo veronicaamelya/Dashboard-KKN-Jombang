@@ -148,7 +148,7 @@ elif selected == "Analisis":
         <h2>Analisis Data Usaha</h2>
     """, unsafe_allow_html=True)
 
-# upload excel
+#upload excel
     st.markdown("""
     <div class="data-berkas-container">
         <h4>Data Berkas</h4>
@@ -158,15 +158,26 @@ elif selected == "Analisis":
         </p>
     """, unsafe_allow_html=True)
 
+    FILE_TEMPLATE_NAME = "ANALISIS UMKM KEC MEGALUH.xlsx" 
+    excel_template_data = b"" # Default data kosong
+
+    try:
+        # PASTIKAN FILE 'ANALISIS UMKM KEC MEGALUH.xlsx' ADA DI FOLDER YANG SAMA
+        with open(FILE_TEMPLATE_NAME, "rb") as file:
+            excel_template_data = file.read()
+    except FileNotFoundError:
+        st.error(f"⚠ Error: File template '{FILE_TEMPLATE_NAME}' tidak ditemukan. Mohon letakkan file template di folder skrip Anda.")
+
     col1, col2, col3 = st.columns([1, 2, 1])
-    
-    # ... (kode upload excel tidak diubah) ...
+
+
     with col1:
-        st.markdown("<div class='label-col'>UNDUH TEMPLATE</div>", unsafe_allow_html=True)
+        st.markdown("<div class='label-col'>Unduh Template</div>", unsafe_allow_html=True)
         st.download_button(
             label="Unduh File",
-            data=b"Contoh template excel...",
-            file_name="TEMPLATE KKN.xlsx",
+            # Hapus data=b"Contoh template excel..."
+            data=excel_template_data, # <-- Ganti dengan byte dari file VALID
+            file_name=FILE_TEMPLATE_NAME,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
@@ -629,3 +640,4 @@ elif selected == "Tentang Kami":
         mengelola data keuangan secara lebih sistematis.
     </div>
     """, unsafe_allow_html=True)
+
