@@ -200,7 +200,7 @@ elif selected == "Analisis":
             "Jumlah Bahan yang Diolah (kg)",
             min_value=0.0, 
             step=0.1,
-            value=0.0,
+            value=st.session_state.bahan_diolah,
             key="bahan_diolah", 
             on_change=update_session_state_callback
         )
@@ -208,7 +208,7 @@ elif selected == "Analisis":
         target_produksi = st.number_input(
             "Target Produksi (gram)", 
             min_value=0.0, 
-            step=1.0, 
+            step=st.session_state.target_produksi, 
             key="target_produksi",
             on_change=update_session_state_callback
         )
@@ -216,7 +216,7 @@ elif selected == "Analisis":
         kemasan_per_produk = st.number_input(
             "Kemasan per Produksi (gram)",
             min_value=0.0, 
-            step=1.0,
+            step=st.session_state.kemasan_per_produk,
             key="kemasan_per_produk",
             on_change=update_session_state_callback
         )
@@ -226,7 +226,7 @@ elif selected == "Analisis":
         jumlah_kemasan = st.number_input(
             "Jumlah Kemasan (pcs)", 
             min_value=0, 
-            step=1, 
+            step=st.session_state.jumlah_kemasan, 
             key="jumlah_kemasan",
             on_change=update_session_state_callback
         )
@@ -234,7 +234,7 @@ elif selected == "Analisis":
         margin_laba = st.number_input(
             "Margin Laba (%)", 
             min_value=0.0, 
-            step=0.5, 
+            step=st.session_state.margin_laba, 
             key="margin_laba",
             on_change=update_session_state_callback
         )
@@ -616,6 +616,7 @@ elif selected == "Tentang Kami":
         tepat dan berbasis data untuk meningkatkan daya saing serta keberlanjutan usahanya.
     </div>
     """, unsafe_allow_html=True)
+
 
 
 
