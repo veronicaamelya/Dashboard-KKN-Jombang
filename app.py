@@ -5,7 +5,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
 import numpy_financial as npf
-import os 
 
 # ====================================================================
 # FUNGSI GLOBAL (Perlu di atas semua kode Streamlit)
