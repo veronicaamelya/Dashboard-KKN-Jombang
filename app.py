@@ -192,17 +192,17 @@ elif selected == "Analisis":
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        bahan_diolah = st.number_input("Jumlah Bahan yang Diolah (kg)", min_value=0.0, step=0.1, value=5.0, key="bahan_diolah",on_change=update_session_state, args=("bahan_diolah"))
+        bahan_diolah = st.number_input("Jumlah Bahan yang Diolah (kg)", min_value=0.0, step=0.1, value=5.0, key="bahan_diolah")
     with col2:
-        target_produksi = st.number_input("Target Produksi (gram)", min_value=0.0, step=1.0, key="target_produksi",on_change=update_session_state, args=("target_produksi"))
+        target_produksi = st.number_input("Target Produksi (gram)", min_value=0.0, step=1.0, key="target_produksi")
     with col3:
-        kemasan_per_produk = st.number_input("Kemasan per Produksi (gram)", min_value=0.0, step=1.0, key="kemasan_per_produk",on_change=update_session_state, args=("kemasan_per_produk"))
+        kemasan_per_produk = st.number_input("Kemasan per Produksi (gram)", min_value=0.0, step=1.0, key="kemasan_per_produk")
 
     col4, col5 = st.columns(2)
     with col4:
-        jumlah_kemasan = st.number_input("Jumlah Kemasan (pcs)", min_value=0, step=1, key="jumlah_kemasan",on_change=update_session_state, args=("jumlah_kemasan"))
+        jumlah_kemasan = st.number_input("Jumlah Kemasan (pcs)", min_value=0, step=1, key="jumlah_kemasan")
     with col5:
-        margin_laba = st.number_input("Margin Laba (%)", min_value=0.0, step=0.5, key="margin_laba",on_change=update_session_state, args=("margin_laba"))
+        margin_laba = st.number_input("Margin Laba (%)", min_value=0.0, step=0.5, key="margin_laba")
     if margin_laba > 0:
         biaya_per_kemasan = (total_bahan_baku + total_operasional) / jumlah_kemasan if jumlah_kemasan > 0 else 0
         harga_jual_otomatis = biaya_per_kemasan * (1 + margin_laba / 100)
@@ -581,4 +581,5 @@ elif selected == "Tentang Kami":
         tepat dan berbasis data untuk meningkatkan daya saing serta keberlanjutan usahanya.
     </div>
     """, unsafe_allow_html=True)
+
 
