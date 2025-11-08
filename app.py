@@ -427,7 +427,7 @@ elif selected == "Analisis":
         
         payback_period = None
 
-        diskonto_bulanan_sederhana = (1 + diskonto/100)(1/12) - 1
+        diskonto_bulanan_sederhana = (1 + diskonto/100)**(1/12) - 1
         
         cash_flows_sederhana = [-investasi_awal_sederhana] + laba_bulanan[:int(periode)]
         
@@ -476,7 +476,7 @@ elif selected == "Analisis":
         cash_flows = [-investasi_awal] + ncf
 
         # Perhitungan finansial
-        diskonto_bulanan = (1 + diskonto/100)(1/12) - 1
+        diskonto_bulanan = (1 + diskonto/100)**(1/12) - 1
         npv = npf.npv(diskonto_bulanan, cash_flows)
         irr = npf.irr(cash_flows)
         irr_tahunan = (1 + irr)**12-1 if irr is not None else 0
@@ -599,4 +599,5 @@ elif selected == "Tentang Kami":
         tepat dan berbasis data untuk meningkatkan daya saing serta keberlanjutan usahanya.
     </div>
     """, unsafe_allow_html=True)
+
 
