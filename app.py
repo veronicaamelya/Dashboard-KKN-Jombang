@@ -53,7 +53,7 @@ with st.sidebar:
         <div class='footer'>
             <hr>
             <p>© 2025 Dashboard Analisis Usaha<br>
-            KKN Abmas Kecamatan Megaluh<br>
+            KKN Abmas Kecamatan Megaluh Desa Gongseng<br>
             Departemen Statistika Bisnis</p>
         </div>
     """, unsafe_allow_html=True)
@@ -588,7 +588,7 @@ elif selected == "Tentang Kami":
     st.markdown("""
     <h2 class='title'> Tentang Kami</h2>
     <div class='content-page-1'>
-        <p>Dashboard ini dikembangkan oleh <b>KKN Abmas Kecamatan Megaluh</b> 
+        <p>Dashboard ini dikembangkan oleh <b>KKN Abmas Kecamatan Megaluh Desa Gongseng</b> 
         dari <b>Departemen Statistika Bisnis, Institut Teknologi Sepuluh Nopember (ITS)</b>.
         Dashboard Analisis UMKM ini dikembangkan oleh tim Pengabdian kepada Masyarakat dari 
         Departemen Statistika Bisnis. Dashboard ini dirancang untuk membantu pelaku usaha dalam 
@@ -599,3 +599,4 @@ elif selected == "Tentang Kami":
         tepat dan berbasis data untuk meningkatkan daya saing serta keberlanjutan usahanya.
     </div>
     """, unsafe_allow_html=True)
+
